@@ -17,12 +17,17 @@ npm run dev              # http://localhost:3000
 ```
 Without `GEMINI_API_KEY`, summaries use a deterministic fallback. Deploy on Vercel with Postgres by changing the Prisma provider and `DATABASE_URL`.
 
+The **Research resilience** page reads research sites and weather observations from the OneAquaHealth API over HTTPS. It is read-only, has no effect on StreamPulse scores, and reports a temporary data error if the upstream service is unavailable. `ENORA_API_BASE_URL` can point to another HTTPS API origin; HTTP URLs are rejected.
+
+After starting StreamPulse, open `/resilience`, select a OneAquaHealth research site, and choose a date range to view daily weather. For the full indicator set, open the [OneAquaHealth Resilience Map](https://apps.oneaquahealth.eu/resmap/). To submit citizen observations, first join the [OneAquaHealth Community](https://www.oneaquahealth.eu/community/), then use the [Citizen Science App](https://apps.oneaquahealth.eu/login).
+
 ## Architecture
 ```
 Seed / POST /api/observations -> health.ts score -> Prisma (SQLite)
   GET /api/streams[/id] -> Dashboard (Leaflet) + Detail (Recharts)
   POST /api/ai-summary -> Gemini (or fallback) -> editable text
   GET /api/fhir/export?streamId= -> FHIR Bundle (Location + Observations + DiagnosticReport)
+  GET /api/enora/sites + /api/enora/weather -> HTTPS OneAquaHealth read-only proxy -> Research resilience page
 ```
 Score = clarity 20% + pH 15% + temperature 10% + macroinvertebrates 25% + pollution signs 15% + habitat 15%.
 

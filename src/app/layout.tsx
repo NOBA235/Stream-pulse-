@@ -6,6 +6,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
     <header className="border-b bg-card"><nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 p-4">
       <Link href="/" className="text-lg font-bold text-primary">StreamPulse</Link>
       <Link href="/" className="text-sm hover:underline">Dashboard</Link>
+      <Link href="/resilience" className="text-sm hover:underline">Research resilience</Link>
       <Link href="/about" className="text-sm hover:underline">About One Health</Link>
     </nav></header>
     <main className="mx-auto max-w-6xl p-4">{children}</main></body></html>;
