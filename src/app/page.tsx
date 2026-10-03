@@ -23,8 +23,14 @@ export default function Dashboard() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   useEffect(() => {
-    fetch("/api/streams").then(r => r.ok ? r.json() : Promise.reject())
-      .then(setStreams).catch(() => setErr("Could not load streams. Run npm run seed, then reload."));
+    fetch("/api/streams")
+      .then(async r => {
+        if (r.ok) return r.json();
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ? `${d.error}${d.hasDatabaseUrl === false ? " (DATABASE_URL is not set on the server)" : ""}` : `HTTP ${r.status}`);
+      })
+      .then(setStreams)
+      .catch((e: Error) => setErr(`Could not load streams: ${e.message}. Check the database connection and environment variables.`));
   }, []);
   const shown = useMemo(() => (streams ?? []).filter(s => s.name.toLowerCase().includes(q.toLowerCase()) && (status === "all" || s.status === status)), [streams, q, status]);
   if (err) return <Alert variant="destructive">{err}</Alert>;
