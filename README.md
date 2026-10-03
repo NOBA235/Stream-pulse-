@@ -6,16 +6,19 @@ Citizen stream observations -> Stream Health Score -> map, trends, Gemini One He
 Turns citizen-collected data into actionable stream health and One Health insights, with a human-in-the-loop edit step and standards-based (FHIR R4) export.
 
 ## Stack
-Next.js 14 (App Router, TypeScript), Tailwind CSS + shadcn/ui (`components.json` included; add more with `npx shadcn@latest add <name>`), Leaflet/react-leaflet, Recharts, Prisma + SQLite, Gemini API (`gemini-3.5-flash`), FHIR R4 JSON.
+Next.js 14 (App Router, TypeScript), Tailwind CSS + shadcn/ui (`components.json` included; add more with `npx shadcn@latest add <name>`), Leaflet/react-leaflet, Recharts, Prisma + Supabase Postgres, Gemini API (`gemini-3.5-flash`), FHIR R4 JSON.
 
 ## Setup
 ```
 npm install
-cp .env.example .env     # add GEMINI_API_KEY (optional)
-npm run seed             # 5 streams, 70 observations over 6 months
+cp .env.example .env     # set the Supabase URLs below
+npx prisma generate
+npm run seed             # creates schema and demo data only if the database has no streams
 npm run dev              # http://localhost:3000
 ```
-Without `GEMINI_API_KEY`, summaries use a deterministic fallback. Deploy on Vercel with Postgres by changing the Prisma provider and `DATABASE_URL`.
+Before running the app, copy `.env.example` to `.env` and set `DATABASE_URL` to your Supabase **Transaction pooler** connection string (port `6543`, with `pgbouncer=true`) and `DIRECT_URL` to the Supabase direct connection string. If your local network cannot reach the direct connection, use Supabase's session pooler connection on port `5432` for `DIRECT_URL`. Keep both values private and set them as server-side environment variables in Vercel. Without `GEMINI_API_KEY`, summaries use a deterministic fallback.
+
+`npm run db:push` applies the Prisma schema. `npm run seed` adds the five-stream, 70-observation demo dataset only when the database is empty. `npm run seed:reset` deletes all existing streams and observations before recreating the demo dataset; use it only when you intend to replace that data.
 
 The **Research resilience** page reads research sites and weather observations from the OneAquaHealth API over HTTPS. It is read-only, has no effect on StreamPulse scores, and reports a temporary data error if the upstream service is unavailable. `ENORA_API_BASE_URL` can point to another HTTPS API origin; HTTP URLs are rejected.
 
@@ -23,7 +26,7 @@ After starting StreamPulse, open `/resilience`, select a OneAquaHealth research 
 
 ## Architecture
 ```
-Seed / POST /api/observations -> health.ts score -> Prisma (SQLite)
+Seed / POST /api/observations -> health.ts score -> Prisma (Supabase Postgres)
   GET /api/streams[/id] -> Dashboard (Leaflet) + Detail (Recharts)
   POST /api/ai-summary -> Gemini (or fallback) -> editable text
   GET /api/fhir/export?streamId= -> FHIR Bundle (Location + Observations + DiagnosticReport)

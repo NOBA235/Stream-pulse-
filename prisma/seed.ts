@@ -13,7 +13,13 @@ const STREAMS = [
 ];
 const SIGNS = ["trash", "odor", "algae", "oil sheen", "foam"];
 async function main() {
-  await db.observation.deleteMany(); await db.stream.deleteMany();
+  const reset = process.argv.includes("--reset");
+  const existingStreams = await db.stream.count();
+  if (existingStreams > 0 && !reset) {
+    console.log(`Found ${existingStreams} existing streams; skipping demo seed. Use npm run seed:reset only when you intend to replace all stream data.`);
+    return;
+  }
+  if (reset) { await db.observation.deleteMany(); await db.stream.deleteMany(); }
   const rand = rng(42), N = 14, now = Date.now(), span = 180 * 864e5;
   for (const s of STREAMS) {
     const stream = await db.stream.create({ data: { name: s.name, description: s.description, lat: s.lat, lng: s.lng } });
