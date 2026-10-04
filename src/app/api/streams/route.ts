@@ -2,10 +2,22 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { statusOf, trendOf } from "@/lib/health";
 export const dynamic = "force-dynamic";
+async function fetchStreamsWithRetry(retries = 1) {
+  try {
+    return await db.stream.findMany({ include: { observations: { orderBy: { timestamp: "asc" } } } });
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      return await db.stream.findMany({ include: { observations: { orderBy: { timestamp: "asc" } } } });
+    }
+    throw err;
+  }
+}
+
 // GET /api/streams -> every stream with latest score, 6-month average, status and trend
 export async function GET() {
   try {
-    const streams = await db.stream.findMany({ include: { observations: { orderBy: { timestamp: "asc" } } } });
+    const streams = await fetchStreamsWithRetry();
     return NextResponse.json(streams.map(({ observations: obs, ...s }) => {
       const scores = obs.map(o => o.healthScore ?? 0);
       const latest = scores.at(-1) ?? null;

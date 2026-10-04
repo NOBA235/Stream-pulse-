@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { COLORS, S, SCORE_HELP } from "@/lib/ui";
 
 const StreamMap = dynamic(() => import("@/components/StreamMap"), { ssr: false, loading: () => <div className="h-80 animate-pulse rounded-2xl bg-muted md:h-[28rem]" /> });
@@ -22,7 +23,9 @@ export default function Dashboard() {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
-  useEffect(() => {
+
+  const loadStreams = useCallback(() => {
+    setErr("");
     fetch("/api/streams")
       .then(async r => {
         if (r.ok) return r.json();
@@ -32,8 +35,20 @@ export default function Dashboard() {
       .then(setStreams)
       .catch((e: Error) => setErr(`Could not load streams: ${e.message}. Check the database connection and environment variables.`));
   }, []);
+
+  useEffect(() => {
+    loadStreams();
+  }, [loadStreams]);
+
   const shown = useMemo(() => (streams ?? []).filter(s => s.name.toLowerCase().includes(q.toLowerCase()) && (status === "all" || s.status === status)), [streams, q, status]);
-  if (err) return <Alert variant="destructive">{err}</Alert>;
+  if (err) return (
+    <div className="space-y-4">
+      <Alert variant="destructive">{err}</Alert>
+      <Button onClick={loadStreams} className="rounded-xl bg-teal-800 hover:bg-teal-900 text-white">
+        Retry loading dashboard
+      </Button>
+    </div>
+  );
   if (!streams) return <div className="space-y-5"><Skeleton className="h-56 rounded-3xl" /><Skeleton className="h-24 rounded-2xl" /><Skeleton className="h-96 rounded-2xl" /></div>;
 
   const scored = streams.filter(s => s.latestScore !== null);
